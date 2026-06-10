@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="qml/main.qml">../qml/main.qml</file>
+        <file alias="qml/MapDisplay.qml">../qml/MapDisplay.qml</file>
+        <file alias="qml/Dashboard.qml">../qml/Dashboard.qml</file>
+        <file alias="qml/SatellitePanel.qml">../qml/SatellitePanel.qml</file>
+        <file alias="qml/TrackPanel.qml">../qml/TrackPanel.qml</file>
+        <file alias="qml/SettingsPanel.qml">../qml/SettingsPanel.qml</file>
+
+    </qresource>
+    <qresource prefix="/icons">
+        <file alias="app.svg">icons/app.svg</file>
+        <file alias="satellite.svg">icons/satellite.svg</file>
+        <file alias="track.svg">icons/track.svg</file>
+        <file alias="settings.svg">icons/settings.svg</file>
+        <file alias="connect.svg">icons/connect.svg</file>
+        <file alias="disconnect.svg">icons/disconnect.svg</file>
+        <file alias="record.svg">icons/record.svg</file>
+        <file alias="stop.svg">icons/stop.svg</file>
+    </qresource>
+</RCC>

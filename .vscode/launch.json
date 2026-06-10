@@ -1,0 +1,38 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch GeoPulse",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/app/GeoPulse",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "/home/pt/Qt/6.7.3/gcc_64/lib:${env:LD_LIBRARY_PATH}"
+                },
+                {
+                    "name": "QML2_IMPORT_PATH",
+                    "value": "/home/pt/Qt/6.7.3/gcc_64/qml"
+                },
+                {
+                    "name": "QT_PLUGIN_PATH",
+                    "value": "/home/pt/Qt/6.7.3/gcc_64/plugins"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "cmake build"
+        }
+    ]
+}
