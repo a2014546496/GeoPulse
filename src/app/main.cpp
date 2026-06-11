@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
     ctx->setContextProperty("GpsManager", geoPulseApp.gpsManager());
     ctx->setContextProperty("TrackRecorder", geoPulseApp.trackRecorder());
     ctx->setContextProperty("GeofenceManager", geoPulseApp.geofenceManager());
+    ctx->setContextProperty("Logger", Logger::instance());
 
     // ── Load main QML ────────────────────────────────────
     const QUrl url(QStringLiteral("qrc:/qml/main.qml"));

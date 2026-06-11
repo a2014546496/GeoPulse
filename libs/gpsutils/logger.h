@@ -35,6 +35,9 @@ public:
     void setMinLevel(Level level);
     Level minLevel() const;
 
+    /// Convenience for QML: set log level by int (0=Debug..3=Error)
+    Q_INVOKABLE void setLogLevel(int level) { setMinLevel(static_cast<Level>(level)); }
+
     void log(Level level, const QString &file, int line, const QString &message);
 
     // 便捷宏用 — 实际项目中应配合宏 Q_FUNC_INFO 等

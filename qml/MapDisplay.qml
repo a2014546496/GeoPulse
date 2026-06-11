@@ -105,15 +105,6 @@ Item {
         }
     }
 
-    // ── Follow mode Binding ─────────────────────────────
-    Binding {
-        target: qtMap
-        property: "center"
-        value: QtPositioning.coordinate(GpsManager.latitude, GpsManager.longitude)
-        when: mapDisplay.followMode && GpsManager.positionValid
-        delayed: true
-    }
-
     // ── Fence model for Instantiator ────────────────────
     ListModel {
         id: fenceModel
@@ -233,14 +224,19 @@ Item {
             var lat = GpsManager.latitude
             var lon = GpsManager.longitude
 
-            // Add track point if recording and position changed
+            // ── Follow mode: keep map centered on position ──
+            if (mapDisplay.followMode) {
+                qtMap.center = QtPositioning.coordinate(lat, lon)
+            }
+
+            // ── Track recording: add point if position changed
             if (TrackRecorder.recording) {
                 if (Math.abs(lat - mapDisplay.lastLat) > 0.00001 ||
                     Math.abs(lon - mapDisplay.lastLon) > 0.00001) {
-                    // Append to track path
-                    var newPath = trackLine.path
-                    newPath.push(QtPositioning.coordinate(lat, lon))
-                    trackLine.path = newPath
+                    // Use spread to create a new array reference —
+                    // ensures QML property system detects the change
+                    var currentPath = trackLine.path || []
+                    trackLine.path = [...currentPath, QtPositioning.coordinate(lat, lon)]
                     mapDisplay.lastLat = lat
                     mapDisplay.lastLon = lon
                 }

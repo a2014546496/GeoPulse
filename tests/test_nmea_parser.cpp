@@ -99,17 +99,18 @@ private slots:
         QByteArray sentence = "GPGSV,3,1,12,01,45,120,42,03,60,240,45,07,15,030,38,08,75,300,48*71";
 
         GpsData data;
-        bool ok = NMEAParser::parseSentence(sentence, data);
+        QList<SatelliteInfo> sats;
+        bool ok = NMEAParser::parseSentence(sentence, data, sats);
 
         QVERIFY(ok);
         QCOMPARE(data.satelliteCount, 12);
-        QCOMPARE(data.satellitesInView.size(), 4);
+        QCOMPARE(sats.size(), 4);
 
         // Check first satellite
-        QCOMPARE(data.satellitesInView[0].prn, 1);
-        QCOMPARE(data.satellitesInView[0].elevation, 45);
-        QCOMPARE(data.satellitesInView[0].azimuth, 120);
-        QCOMPARE(data.satellitesInView[0].snr, 42);
+        QCOMPARE(sats[0].prn, 1);
+        QCOMPARE(sats[0].elevation, 45);
+        QCOMPARE(sats[0].azimuth, 120);
+        QCOMPARE(sats[0].snr, 42);
     }
 
     // ── Checksum validation ───────────────────────────

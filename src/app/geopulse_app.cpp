@@ -39,6 +39,22 @@ void GeoPulseApp::shutdown()
     Logger::instance()->info("GeoPulse shutting down.");
 }
 
+void GeoPulseApp::connectToSource(const QString &address,
+                                   const QString &type,
+                                   int baudRate)
+{
+    m_lastAddress = address;
+    m_lastBaudRate = baudRate;
+
+    // Persist connection params immediately
+    auto *cfg = ConfigManager::instance();
+    cfg->setValue("connection.type", type);
+    cfg->setValue("connection.address", address);
+    cfg->setValue("connection.baudRate", baudRate);
+
+    m_gpsManager->connectToSource(address, type, baudRate);
+}
+
 GpsManager* GeoPulseApp::gpsManager() const
 {
     return m_gpsManager;
@@ -91,6 +107,8 @@ void GeoPulseApp::loadConfig()
     int lastBaud = cfg->value("connection.baudRate", 9600).toInt();
 
     if (!lastType.isEmpty() && !lastAddress.isEmpty()) {
+        m_lastAddress = lastAddress;
+        m_lastBaudRate = lastBaud;
         Logger::instance()->info(QString("Restoring connection: %1 @ %2")
                                      .arg(lastType, lastAddress));
         m_gpsManager->connectToSource(lastAddress, lastType, lastBaud);
@@ -104,7 +122,8 @@ void GeoPulseApp::saveConfig()
     // Save connection settings for next launch
     if (m_gpsManager->isConnected()) {
         cfg->setValue("connection.type", m_gpsManager->driverType());
-        // Save other settings as needed
+        cfg->setValue("connection.address", m_lastAddress);
+        cfg->setValue("connection.baudRate", m_lastBaudRate);
     }
 
     QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)

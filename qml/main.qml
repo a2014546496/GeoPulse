@@ -89,6 +89,36 @@ ApplicationWindow {
         }
     }
 
+    // ── Geofence Alert Toast ──────────────────────────
+    Rectangle {
+        id: geofenceToast
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: 56
+        width: geofenceToastText.implicitWidth + 40
+        height: 36
+        radius: 8
+        color: "#e65100"
+        opacity: 0.0
+        z: 1000
+
+        Behavior on opacity { NumberAnimation { duration: 300 } }
+
+        Text {
+            id: geofenceToastText
+            anchors.centerIn: parent
+            color: "white"
+            font.pixelSize: 14
+            font.bold: true
+        }
+    }
+
+    Timer {
+        id: geofenceDismissTimer
+        interval: 3000
+        onTriggered: geofenceToast.opacity = 0.0
+    }
+
     // ── Main layout ──────────────────────────────────
     RowLayout {
         anchors.fill: parent
@@ -96,6 +126,7 @@ ApplicationWindow {
 
         // Map view (left, 65%)
         MapDisplay {
+            id: mapDisplay
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumWidth: 400
@@ -162,6 +193,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     currentIndex: sideTabBar.currentIndex
+                    onCurrentIndexChanged: sideTabBar.currentIndex = sideStack.currentIndex
                     interactive: true
                     clip: true
 
@@ -189,6 +221,21 @@ ApplicationWindow {
                          GpsManager.latitude.toFixed(6) + "°, " + GpsManager.longitude.toFixed(6) + "°" :
                          "Waiting for position..."
                   color: "#90a4ae"; font.pixelSize: 11 }
+        }
+    }
+
+    // ── GeofenceManager connections ──────────────────
+    Connections {
+        target: GeofenceManager
+        function onEnteredGeofence(name) {
+            geofenceToastText.text = "📍 Entered: " + name
+            geofenceToast.opacity = 1.0
+            geofenceDismissTimer.restart()
+        }
+        function onExitedGeofence(name) {
+            geofenceToastText.text = "📍 Exited: " + name
+            geofenceToast.opacity = 1.0
+            geofenceDismissTimer.restart()
         }
     }
 

@@ -29,7 +29,7 @@ int NMEAParser::feed(const QByteArray &rawData)
         QByteArray sentence = line.mid(1); // skip '$'
 
         GpsData parsed = m_lastData;  // start from accumulated state
-        if (parseSentence(sentence, parsed)) {
+        if (parseSentence(sentence, parsed, m_satellitesInView)) {
             m_lastData   = parsed;
             m_posUpdated = true;
             ++count;
@@ -45,6 +45,14 @@ int NMEAParser::feed(const QByteArray &rawData)
 }
 
 bool NMEAParser::parseSentence(const QByteArray &sentence, GpsData &outData)
+{
+    QList<SatelliteInfo> dummy;
+    return parseSentence(sentence, outData, dummy);
+}
+
+bool NMEAParser::parseSentence(const QByteArray &sentence,
+                                GpsData &outData,
+                                QList<SatelliteInfo> &outSatellites)
 {
     // 分离校验和
     QByteArray body;
@@ -70,6 +78,11 @@ bool NMEAParser::parseSentence(const QByteArray &sentence, GpsData &outData)
 
     QString type = QString::fromLatin1(fields[0]);
 
+    // 提取 Talker ID（前2字符，如 GP/GL/GA/GB）
+    QString talkerId;
+    if (type.size() >= 2)
+        talkerId = type.left(2);
+
     // 去掉 Talker ID 前两位, 只保留语句类型
     if (type.size() >= 5)
         type = type.mid(1); // e.g. "GPGGA" → "PGGA"? 实际保留后三位即可
@@ -83,7 +96,8 @@ bool NMEAParser::parseSentence(const QByteArray &sentence, GpsData &outData)
     if (type.endsWith("GSA"))
         return parseGPGSA(body, outData);
     if (type.endsWith("GSV"))
-        return parseGPGSV(body, outData);
+        return parseGPGSV(body, outData, outSatellites,
+                          constellationFromTalkerId(talkerId));
 
     return false;
 }
@@ -264,7 +278,9 @@ bool NMEAParser::parseGPGSA(const QByteArray &body, GpsData &data)
 // ────────────────────────────────────────────────────────────
 //  $GPGSV — 可见卫星
 // ────────────────────────────────────────────────────────────
-bool NMEAParser::parseGPGSV(const QByteArray &body, GpsData &data)
+bool NMEAParser::parseGPGSV(const QByteArray &body, GpsData &data,
+                             QList<SatelliteInfo> &outSatellites,
+                             SatelliteInfo::System constellation)
 {
     QList<QByteArray> f;
     for (const QByteArray &s : body.split(','))
@@ -275,19 +291,25 @@ bool NMEAParser::parseGPGSV(const QByteArray &body, GpsData &data)
 
     int totalMessages   = f[1].toInt();
     int messageNumber   = f[2].toInt();
-    int satellitesInView = f[3].toInt();
+    int satsInView      = f[3].toInt();
 
-    data.satelliteCount = satellitesInView;
+    data.satelliteCount = satsInView;
+
+    // 新一轮 GSV 序列开始 — 清空旧卫星数据，避免累积重复
+    if (messageNumber == 1) {
+        outSatellites.clear();
+    }
 
     // 每条消息可包含 4 颗卫星
     int fieldIdx = 4;
     while (fieldIdx + 3 < f.size()) {
-        GpsData::SatelliteInfo sat;
+        SatelliteInfo sat;
+        sat.system    = constellation;
         sat.prn       = f[fieldIdx].toInt();
         sat.elevation = f[fieldIdx + 1].toInt();
         sat.azimuth   = f[fieldIdx + 2].toInt();
         sat.snr       = f[fieldIdx + 3].toInt();
-        data.satellitesInView.append(sat);
+        outSatellites.append(sat);
         fieldIdx += 4;
     }
 
@@ -308,4 +330,16 @@ double NMEAParser::nmeaToDecimal(double nmeaCoord, const QString &hemisphere)
         dec = -dec;
 
     return dec;
+}
+
+SatelliteInfo::System NMEAParser::constellationFromTalkerId(const QString &talker)
+{
+    if (talker == "GP") return SatelliteInfo::GPS;
+    if (talker == "GL") return SatelliteInfo::GLONASS;
+    if (talker == "GA") return SatelliteInfo::Galileo;
+    if (talker == "GB" || talker == "BD") return SatelliteInfo::BeiDou;
+    if (talker == "GQ") return SatelliteInfo::QZSS;
+    if (talker == "GI") return SatelliteInfo::NavIC;
+    // GN = combined multi-constellation — treat as unknown
+    return SatelliteInfo::Unknown;
 }

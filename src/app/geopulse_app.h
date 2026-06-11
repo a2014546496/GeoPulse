@@ -31,6 +31,11 @@ public:
     /// Save state before exit
     void shutdown();
 
+    /// Connect to a GPS source and persist settings
+    Q_INVOKABLE void connectToSource(const QString &address,
+                                     const QString &type,
+                                     int baudRate);
+
     GpsManager* gpsManager() const;
     TrackRecorder* trackRecorder() const;
     GeofenceManager* geofenceManager() const;
@@ -44,4 +49,6 @@ private:
     GpsManager       *m_gpsManager       = nullptr;
     TrackRecorder    *m_trackRecorder    = nullptr;
     GeofenceManager  *m_geofenceManager  = nullptr;
+    QString           m_lastAddress;
+    int               m_lastBaudRate = 9600;
 };

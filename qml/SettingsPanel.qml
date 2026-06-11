@@ -101,9 +101,9 @@ Item {
                             if (GpsManager.connected) {
                                 GpsManager.disconnectFromSource()
                             } else {
-                                GpsManager.connectToSource(
+                                App.connectToSource(
                                     addressField.text,
-                                    driverTypeCombo.currentText.toLowerCase(),
+                                    driverTypeCombo.currentText,
                                     parseInt(baudCombo.currentText)
                                 )
                             }
@@ -117,6 +117,28 @@ Item {
                                   "Not connected"
                         color: GpsManager.connected ? "#81c784" : "#78909c"
                         font.pixelSize: 12
+                    }
+                }
+            }
+
+            // ── Sync UI on auto-reconnect or external connection change
+            Connections {
+                target: GpsManager
+                function onConnectedChanged(connected) {
+                    if (connected) {
+                        // Sync driver type combo
+                        var dt = GpsManager.driverType
+                        if (dt === "TCP") driverTypeCombo.currentIndex = 1
+                        else if (dt === "UDP") driverTypeCombo.currentIndex = 2
+                        else driverTypeCombo.currentIndex = 0  // Serial
+
+                        // Sync address field
+                        addressField.text = GpsManager.currentAddress
+
+                        // Sync baud rate combo
+                        var br = GpsManager.currentBaudRate
+                        var brIdx = baudCombo.find(br.toString())
+                        if (brIdx >= 0) baudCombo.currentIndex = brIdx
                     }
                 }
             }
@@ -156,9 +178,11 @@ Item {
                     }
 
                     CheckBox {
+                        id: autoFollowCheck
                         text: "Auto-follow position"
-                        checked: true
+                        checked: mapDisplay.followMode
                         palette { buttonText: "#e0e0e0" }
+                        onToggled: mapDisplay.followMode = checked
                     }
                 }
             }
@@ -186,6 +210,7 @@ Item {
                     RowLayout {
                         Text { text: "Level:"; color: "#78909c"; font.pixelSize: 12 }
                         ComboBox {
+                            id: logLevelCombo
                             model: ["Debug", "Info", "Warning", "Error"]
                             currentIndex: 1
                             Layout.fillWidth: true
@@ -194,13 +219,25 @@ Item {
                                 text: "#e0e0e0"
                                 buttonText: "#e0e0e0"
                             }
+                            onCurrentIndexChanged: Logger.setLogLevel(currentIndex)
                         }
                     }
 
                     CheckBox {
+                        id: nmeaConsoleCheck
                         text: "Show raw NMEA in console"
                         checked: false
                         palette { buttonText: "#e0e0e0" }
+                    }
+
+                    // NMEA console output listener
+                    Connections {
+                        target: GpsManager
+                        function onRawNmeaSentence(sentence) {
+                            if (nmeaConsoleCheck.checked) {
+                                console.log("[NMEA]", sentence)
+                            }
+                        }
                     }
                 }
             }
