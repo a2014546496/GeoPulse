@@ -86,26 +86,47 @@ ApplicationWindow {
                 font.pixelSize: 13
                 Layout.leftMargin: 12
             }
+
+            // Alert count badge
+            Rectangle {
+                visible: AlertManager.unreadCount > 0
+                width: alertBadge.implicitWidth + 12
+                height: 22
+                radius: 11
+                color: "#e65100"
+                Layout.leftMargin: 8
+                Layout.alignment: Qt.AlignVCenter
+                Text {
+                    id: alertBadge
+                    anchors.centerIn: parent
+                    text: "⚠ " + AlertManager.unreadCount
+                    color: "white"
+                    font.pixelSize: 11
+                    font.bold: true
+                }
+            }
         }
     }
 
-    // ── Geofence Alert Toast ──────────────────────────
+    // ── Alert Toast (driven by AlertManager) ──────────
     Rectangle {
-        id: geofenceToast
+        id: alertToast
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: 56
-        width: geofenceToastText.implicitWidth + 40
+        width: alertToastText.implicitWidth + 40
         height: 36
         radius: 8
-        color: "#e65100"
+        color: alertToastColor
         opacity: 0.0
         z: 1000
 
         Behavior on opacity { NumberAnimation { duration: 300 } }
 
+        property string alertToastColor: "#e65100"
+
         Text {
-            id: geofenceToastText
+            id: alertToastText
             anchors.centerIn: parent
             color: "white"
             font.pixelSize: 14
@@ -114,9 +135,28 @@ ApplicationWindow {
     }
 
     Timer {
-        id: geofenceDismissTimer
-        interval: 3000
-        onTriggered: geofenceToast.opacity = 0.0
+        id: alertDismissTimer
+        interval: 4000
+        onTriggered: alertToast.opacity = 0.0
+    }
+
+    // ── AlertManager → Toast ──────────────────────────
+    Connections {
+        target: AlertManager
+        function onAlertTriggered(alert) {
+            // Map alert level to toast color
+            switch (alert.level) {
+                case 2: // Critical
+                    alertToast.alertToastColor = "#c62828"; break
+                case 1: // Warning
+                    alertToast.alertToastColor = "#e65100"; break
+                default: // Info
+                    alertToast.alertToastColor = "#1565c0"; break
+            }
+            alertToastText.text = alert.message
+            alertToast.opacity = 1.0
+            alertDismissTimer.restart()
+        }
     }
 
     // ── Main layout ──────────────────────────────────
@@ -221,21 +261,6 @@ ApplicationWindow {
                          GpsManager.latitude.toFixed(6) + "°, " + GpsManager.longitude.toFixed(6) + "°" :
                          "Waiting for position..."
                   color: "#90a4ae"; font.pixelSize: 11 }
-        }
-    }
-
-    // ── GeofenceManager connections ──────────────────
-    Connections {
-        target: GeofenceManager
-        function onEnteredGeofence(name) {
-            geofenceToastText.text = "📍 Entered: " + name
-            geofenceToast.opacity = 1.0
-            geofenceDismissTimer.restart()
-        }
-        function onExitedGeofence(name) {
-            geofenceToastText.text = "📍 Exited: " + name
-            geofenceToast.opacity = 1.0
-            geofenceDismissTimer.restart()
         }
     }
 

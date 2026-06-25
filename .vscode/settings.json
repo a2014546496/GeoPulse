@@ -1,0 +1,8 @@
+{
+    "cmake.configureSettings": {
+        "CMAKE_PREFIX_PATH": "/home/pt/Qt/6.7.3/gcc_64",
+        "Qt6_DIR": "/home/pt/Qt/6.7.3/gcc_64/lib/cmake/Qt6"
+    },
+    "cmake.kitName": "Qt-6.7.3-gcc_64-x86_64",
+    "cmake.clearOutputBeforeBuild": true
+}

@@ -10,6 +10,7 @@ GeoPulseApp::GeoPulseApp(QObject *parent)
     , m_gpsManager(new GpsManager(this))
     , m_trackRecorder(new TrackRecorder(this))
     , m_geofenceManager(new GeofenceManager(this))
+    , m_alertManager(new AlertManager(this))
 {
     wireConnections();
 }
@@ -27,6 +28,9 @@ bool GeoPulseApp::initialize()
     Logger::instance()->setLogFile(logPath + "/geopulse.log");
     Logger::instance()->info("GeoPulse starting...");
 
+    // Ensure track save directory exists
+    m_trackRecorder->ensureSaveDirectory();
+
     // Load configuration
     loadConfig();
 
@@ -35,6 +39,11 @@ bool GeoPulseApp::initialize()
 
 void GeoPulseApp::shutdown()
 {
+    // Auto-stop recording to trigger auto-save before exit
+    if (m_trackRecorder->isRecording()) {
+        m_trackRecorder->stopRecording();
+    }
+
     saveConfig();
     Logger::instance()->info("GeoPulse shutting down.");
 }
@@ -70,6 +79,11 @@ GeofenceManager* GeoPulseApp::geofenceManager() const
     return m_geofenceManager;
 }
 
+AlertManager* GeoPulseApp::alertManager() const
+{
+    return m_alertManager;
+}
+
 QString GeoPulseApp::appVersion() const
 {
     return "1.0.0";
@@ -86,6 +100,34 @@ void GeoPulseApp::wireConnections()
             this, [this](const GpsData &data) {
                 if (data.isValid) {
                     m_geofenceManager->checkPosition(data.latitude, data.longitude);
+
+                    // ── Alert: Overspeed ──────────────
+                    if (data.speedKmh > m_alertManager->maxSpeedKph()) {
+                        m_alertManager->onOverspeed(data.speedKmh,
+                                                    m_alertManager->maxSpeedKph());
+                    }
+
+                    // ── Alert: DOP ────────────────────
+                    if (data.hdop > m_alertManager->maxHdop() ||
+                        data.pdop > m_alertManager->maxPdop()) {
+                        m_alertManager->onDOPWarning(data.hdop, data.pdop);
+                    }
+                }
+            });
+
+    // ── Alert: Geofence events ───────────────────────
+    connect(m_geofenceManager, &GeofenceManager::enteredGeofence,
+            m_alertManager, &AlertManager::onGeofenceEntered);
+    connect(m_geofenceManager, &GeofenceManager::exitedGeofence,
+            m_alertManager, &AlertManager::onGeofenceExited);
+
+    // ── Alert: Connection state changes ──────────────
+    connect(m_gpsManager, &GpsManager::connectedChanged,
+            this, [this](bool connected) {
+                if (connected) {
+                    m_alertManager->onConnectionRestored();
+                } else {
+                    m_alertManager->onConnectionLost();
                 }
             });
 }

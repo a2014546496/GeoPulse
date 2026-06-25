@@ -3,6 +3,7 @@
 #include "gps_manager.h"
 #include "track_recorder.h"
 #include "geofence_manager.h"
+#include "alert_manager.h"
 
 #include <QObject>
 #include <QGuiApplication>
@@ -19,6 +20,7 @@ class GeoPulseApp : public QObject
     Q_PROPERTY(GpsManager* gpsManager READ gpsManager CONSTANT)
     Q_PROPERTY(TrackRecorder* trackRecorder READ trackRecorder CONSTANT)
     Q_PROPERTY(GeofenceManager* geofenceManager READ geofenceManager CONSTANT)
+    Q_PROPERTY(AlertManager* alertManager READ alertManager CONSTANT)
     Q_PROPERTY(QString appVersion READ appVersion CONSTANT)
 
 public:
@@ -39,6 +41,7 @@ public:
     GpsManager* gpsManager() const;
     TrackRecorder* trackRecorder() const;
     GeofenceManager* geofenceManager() const;
+    AlertManager* alertManager() const;
     QString appVersion() const;
 
 private:
@@ -49,6 +52,7 @@ private:
     GpsManager       *m_gpsManager       = nullptr;
     TrackRecorder    *m_trackRecorder    = nullptr;
     GeofenceManager  *m_geofenceManager  = nullptr;
+    AlertManager     *m_alertManager     = nullptr;
     QString           m_lastAddress;
     int               m_lastBaudRate = 9600;
 };

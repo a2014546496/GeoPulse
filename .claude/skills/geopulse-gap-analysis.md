@@ -16,22 +16,28 @@ category: project
 
 ---
 
-## 项目当前基线（v1.0 MVP 已实现）
+## 项目当前基线（v1.1 第一阶段完成）
 
 ### 核心数据流 ✅
-GPS 设备驱动（Serial/TCP/UDP）→ NMEA 0183 解析（GGA/RMC/VTG/GSA/GSV）→ GpsManager 协调 → TrackRecorder 录制 + GeofenceManager 围栏检测
+GPS 设备驱动（Serial/TCP/UDP）→ NMEA 0183 解析（GGA/RMC/VTG/GSA/GSV）→ GpsManager 协调 → TrackRecorder 录制 + GeofenceManager 围栏检测 + **AlertManager 告警通知**
 
 ### QML 界面（6 个面板）✅
-- **main.qml** — 暗色主题主窗口，工具栏含连接状态/定位质量/卫星数
+- **main.qml** — 暗色主题主窗口，工具栏含连接状态/定位质量/卫星数/**告警徽章**
 - **MapDisplay.qml** — QtLocation OSM 地图，位置标记/精度圈/轨迹线/围栏多边形，跟随模式，手势交互
 - **Dashboard.qml** — 位置面板 + 速度仪表条 + 信号质量面板
-- **SatellitePanel.qml** — 天空图 Canvas + SNR 柱状图 + 卫星列表（⚠ 占位数据）
+- **SatellitePanel.qml** — 天空图 Canvas + SNR 柱状图 + 卫星列表（✅ 已接入真实卫星数据）
 - **TrackPanel.qml** — 录制控制 + 统计信息 + GPX/CSV 导出 FileDialog
 - **SettingsPanel.qml** — 连接配置 + 地图图层（含 Satellite TODO）+ 日志级别 + 关于
 
 ### 底层库 ✅
 - **libs/gpscomm** — IGPSDeviceDriver 抽象接口 + Serial/TCP/UDP 三种驱动
 - **libs/gpsutils** — NMEAParser + GeoUtils + ConfigManager + Logger
+
+### 核心业务层 ✅
+- **GpsManager** — ✅ 卫星数据通过 `satellitesInView()` + `satelliteInfoChanged` 信号暴露给 QML
+- **TrackRecorder** — ✅ 自动保存：`autoSave`/`saveDirectory` 属性，stopRecording/clearTrack/退出时自动写 GPX 到 `~/.local/share/GeoPulse/tracks/`
+- **GeofenceManager** — 围栏进出检测，信号已接入 AlertManager
+- **AlertManager** ✅ (新增) — 围栏/超速/DOP/断连 六种告警，历史列表，QML Toast 通知
 
 ### 测试 ✅
 - test_nmea_parser（8 用例）、test_geo_utils（12 用例）、test_config_manager（6 用例）、test_driver_factory（8 用例）
@@ -40,13 +46,13 @@ GPS 设备驱动（Serial/TCP/UDP）→ NMEA 0183 解析（GGA/RMC/VTG/GSA/GSV�
 
 ## 缺口清单（按优先级分层）
 
-### 🔴 P0 — 致命缺口（影响核心可用性）
+### 🔴 P0 — 致命缺口（影响核心可用性）✅ 全部已修复
 
-| # | 缺口 | 现状 | 建议 |
-|---|------|------|------|
-| 1 | **卫星数据未接入 UI** | `GpsData::satellitesInView` 数据已解析但未通过 GpsManager 暴露给 QML；天空图/SNR 柱状图/卫星列表全部使用 `Math.random()` 占位数据（见 `SatellitePanel.qml:82` `TODO`） | 在 GpsManager 中新增 `Q_PROPERTY(QVariantList satellitesInView)`，或注册 `QAbstractListModel`；天空图用真实 azimuth/elevation 计算极坐标 |
-| 2 | **轨迹无持久化** | TrackRecorder 仅内存存储，关闭即丢失；无自动保存、无历史轨迹恢复 | 增加 autoSave/ savePath 属性；退出时自动写 GPX 到 `~/.geopulse/tracks/`；支持打开历史轨迹 |
-| 3 | **无告警通知系统** | GeofenceManager 有 enteredGeofence/exitedGeofence 信号但上层无人消费；无超速/断连/DOP超限/低电量告警；无声音/系统通知 | 新增 AlertManager 类；支持围栏/超速/断连/DOP 超限告警；声音+状态栏闪烁+系统托盘通知；告警历史列表 |
+| # | 缺口 | 状态 | 修复说明 |
+|---|------|------|----------|
+| 1 | **卫星数据未接入 UI** | ✅ 已修复 | `GpsManager::satellitesInView()` 暴露 QVariantList，`SatellitePanel.qml` 通过 `onSatelliteInfoChanged` 监听真实数据，天空图/SNR柱状图/卫星列表全部使用真实卫星数据（含星座识别、SNR着色、防抖优化） |
+| 2 | **轨迹无持久化** | ✅ 已修复 | `TrackRecorder` 新增 `autoSave`/`saveDirectory` 属性，`stopRecording()`/`clearTrack()`/退出时自动写 GPX 到 `~/.local/share/GeoPulse/tracks/`，文件名含时间戳 |
+| 3 | **无告警通知系统** | ✅ 已修复 | 新增 `AlertManager` 类，支持围栏进入/离开、超速（默认120km/h可配置）、DOP超限（HDOP>3.0/PDOP>7.0可配置）、连接丢失/恢复六种告警；QML 工具栏告警徽章 + 颜色分级 Toast（蓝=Info/橙=Warning/红=Critical） |
 
 ### 🟠 P1 — 重要缺口（限制产品化交付）
 
@@ -105,10 +111,10 @@ GPS 设备驱动（Serial/TCP/UDP）→ NMEA 0183 解析（GGA/RMC/VTG/GSA/GSV�
 
 ## 改进路线图建议
 
-### 第一阶段 → 可交付内部试用版
+### ✅ 第一阶段 → 可交付内部试用版（已完成 2026-06-25）
 修复 #1（卫星数据接入 UI）+ #2（轨迹持久化）+ #3（告警通知系统）
 
-### 第二阶段 → 可对外发布
+### 第二阶段 → 可对外发布（当前目标）
 #4（轨迹导入）+ #5（轨迹回放）+ #7（高程/速度图表）+ #8（围栏地图编辑）+ #9（坐标格式）+ #10（录制参数配置）
 
 ### 第三阶段 → 完善产品体验
